@@ -14,7 +14,7 @@ This project serves as both a structured learning environment and a documented r
 
 ### Logical Infrastructure Overview
 
-![Infrastructure Diagram](docs/architecture/infrastructure.png)
+![Infrastructure Diagram](docs/architecture/diagrams/infrastructure.png)
 
 The platform runs on a single physical node (GEEKOM IT12 Mini PC) hosting Proxmox VE as the hypervisor. All virtual machines and storage services are deployed on this host.
 
@@ -82,7 +82,7 @@ The topology intentionally mirrors a small production deployment:
 
 Client requests follow a defined path through the infrastructure down to workloads inside the cluster:
 
-![Request Flow](docs/architecture/request-flow.png)
+![Request Flow](docs/architecture/diagrams/request-flow.png)
 
 
 - Cloudflare acts as the public authoritative DNS provider for exposed domains
