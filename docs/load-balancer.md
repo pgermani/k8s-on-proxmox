@@ -55,8 +55,8 @@ NGINX is used as a **Layer 4 TCP load balancer** using the `stream` module.
 
 Configuration files:
 
-- Docker Compose file: [nginx/docker-compose.yaml](nginx/docker-compose.yaml)
-- NGINX configuration: [nginx/conf/nginx.conf](nginx/conf/nginx.conf)
+- Docker Compose file: [infra/load-balancer/nginx/docker-compose.yaml](../infra/load-balancer/nginx/docker-compose.yaml)
+- NGINX configuration: [infra/load-balancer/nginx/conf/nginx.conf](../infra/load-balancer/nginx/conf/nginx.conf)
 
 Before starting the container, adjust the backend node IP addresses inside `nginx.conf`
 
@@ -74,8 +74,8 @@ Pi-hole is deployed as a container to provide DNS services to the local network.
 
 Configuration files:
 
-- Docker Compose file: [pihole/docker-compose.yaml](pihole/docker-compose.yaml)
-- Environment configuration: [pihole/.env.example](pihole/.env.example)
+- Docker Compose file: [infra/load-balancer/pihole/docker-compose.yaml](../infra/load-balancer/pihole/docker-compose.yaml)
+- Environment configuration: [infra/load-balancer/pihole/.env.example](../infra/load-balancer/pihole/.env.example)
 
 The container runs on a **macvlan network** so it can receive its own IP address on the LAN.
 
