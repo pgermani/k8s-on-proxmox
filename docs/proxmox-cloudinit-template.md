@@ -108,6 +108,8 @@ qm set 8000 --serial0 socket --vga serial0
 
 You can configure via CLI or GUI.
 
+> **Note:** Use the same username and SSH key across all nodes. This simplifies SSH access and avoids per-node configuration differences during Kubernetes bootstrap.
+
 ### CLI
 
 ```bash
@@ -146,7 +148,6 @@ Do **not** start the VM before converting it to template.
          - Gateway: `192.168.0.1`
 4. Click **Regenerate Image** after making changes.
 
-
 ## 10. Convert VM to Template
 
 ### CLI
@@ -181,11 +182,13 @@ qm clone 8000 8101 --name k8s-worker-01 --full
 
 1. Select the Template.
 2. Right-click -> **Clone**.
-3. Set:
+3. In the **Options** section, set:
    - **VM ID** -> Increment from the last created VM
    - **Mode** -> Full Clone
    - **Name** -> Descriptive name (e.g. `k8s-worker-01`)
 4. Click **Clone**.
+
+> **Note:** Each VM must have a unique name. Proxmox uses the VM name as the system hostname, and RKE2 uses the hostname as the node identifier when registering nodes in the cluster. Duplicate hostnames will cause node registration to fail or nodes to collide in the cluster state.
 
 
 ## 12. Post-Clone
@@ -196,9 +199,38 @@ After cloning, review the VM configuration before starting it.
 2. Verify **Cloud-Init -> IP Configuration**:
    - Ensure the assigned static IP is not already in use.
    - Confirm the gateway and network settings are correct.
-3. Adjust hardware resources according to node role:
+3. Set the CPU type to `host`:
+
+   #### CLI
+
+   ```bash
+   qm set <new-vmid> --cpu host
+   ```
+
+   #### GUI
+
+   Open the VM -> **Hardware** -> **Processors** -> set **Type** to `host`.
+
+   > Note: Required for recent RKE2 versions that depend on CPU features unavailable with the default `kvm64` type.
+
+4. Adjust hardware resources according to node role:
    - CPU cores
    - Memory allocation
-   - Disk size
+
+5. Resize the disk to meet minimum requirements for the node role:
+
+   The Ubuntu cloud image ships with a ~3.5 GB root disk. Kubernetes nodes need significantly more space for container images, logs, and ephemeral storage. A minimum of **50–60 GB** is recommended.
+
+   #### CLI
+
+   ```bash
+   qm resize <new-vmid> scsi0 +57G
+   ```
+
+   #### GUI
+
+   Open the VM -> **Hardware** -> select **Hard Disk (scsi0)** -> **Disk Action** -> **Resize** -> enter the amount to **add** (not the total target size).
+
+   > **Note:** This resizes the block device only. The partition and filesystem inside the VM are automatically expanded by cloud-init on first boot (via `growpart` + `resize2fs`), so no manual intervention is needed inside the guest.
 
 Start the VM and verify SSH access using the injected public key.
