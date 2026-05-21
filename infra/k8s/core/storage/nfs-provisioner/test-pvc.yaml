@@ -1,0 +1,13 @@
+# Test PVC for the nfs-subdir-external-provisioner, see docs/k8s/storage/nfs-provisioner.md
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-truenas
+  resources:
+    requests:
+      storage: 100Mi
