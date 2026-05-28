@@ -1,0 +1,15 @@
+# PersistentVolumeClaim template for an SMB-backed static volume.
+# See docs/k8s/storage/smb-csi.md
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-<app>-smb-<pool>
+  namespace: <namespace>
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: <REQUESTED-SIZE>
+  volumeName: pv-<app>-smb-<pool>
+  storageClassName: smb-<pool>-<dataset>

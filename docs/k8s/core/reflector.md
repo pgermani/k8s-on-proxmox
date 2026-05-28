@@ -45,10 +45,10 @@ reflector-<hash>             1/1     Running   0          1m
 
 Once Reflector is running, annotate the source Secret in its origin namespace to enable automatic replication.
 
-The example below uses the `smb-creds` Secret in `default`:
+The example below uses the `smb-creds` Secret in `external-services`:
 
 ```bash
-kubectl annotate secret smb-creds -n default \
+kubectl annotate secret smb-creds -n external-services \
   reflector.v1.k8s.emberstack.com/reflection-allowed="true" \
   reflector.v1.k8s.emberstack.com/reflection-auto-enabled="true"
 ```

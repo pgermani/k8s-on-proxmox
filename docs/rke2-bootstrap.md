@@ -160,15 +160,7 @@ kubectl label node <worker-vm-name> node-role.kubernetes.io/worker=worker
 
 ### Install the SMB CSI driver
 
-Required for static volumes backed by TrueNAS SMB shares:
-
-```bash
-helm repo add csi-driver-smb https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/charts
-helm repo update
-helm install csi-driver-smb csi-driver-smb/csi-driver-smb \
-  --namespace kube-system \
-  --version v1.18.0
-```
+Required for static volumes backed by TrueNAS SMB shares. See [smb-csi.md](k8s/storage/smb-csi.md) for the full setup.
 
 ### Add TLS SANs to the control plane (optional)
 

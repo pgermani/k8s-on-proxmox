@@ -1,0 +1,26 @@
+# Exposes the TrueNAS SMB server inside the cluster as a headless service.
+# See docs/k8s/storage/smb-csi.md
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: smb-server
+  namespace: external-services
+subsets:
+  - addresses:
+      - ip: <TRUENAS-IP>
+    ports:
+      - port: 445
+        protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smb-server
+  namespace: external-services
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: smb
+      port: 445
+      protocol: TCP
