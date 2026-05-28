@@ -11,7 +11,6 @@ The setup involves four independent pieces that build on each other:
 3. A Secret with SMB credentials - replicated across namespaces via [Reflector](../core/reflector.md)
 4. PersistentVolume + PersistentVolumeClaim - one PV/PVC pair per application, each pointing to the application's dedicated path on TrueNAS
 
----
 
 ## 1. Prerequisites
 
@@ -22,7 +21,6 @@ The setup involves four independent pieces that build on each other:
 | Reflector installed | See [reflector.md](../core/reflector.md) |
 | `helm` on local machine | [Official install guide](https://helm.sh/docs/intro/install/) |
 
----
 
 ## 2. Install the CSI Driver
 
@@ -42,7 +40,6 @@ kubectl get pods -n kube-system -l app=csi-smb-node
 
 Expected output: one pod per node, all `Running`.
 
----
 
 ## 3. Expose TrueNAS SMB Inside the Cluster
 
@@ -55,7 +52,6 @@ kubectl create namespace external-services
 kubectl apply -f infra/k8s/core/storage/smb-csi/smb-server-service.yaml
 ```
 
----
 
 ## 4. SMB Credentials Secret
 
@@ -77,7 +73,6 @@ kubectl annotate secret smb-creds -n external-services \
 
 > See [reflector.md](../core/reflector.md) for details on how to restrict replication to specific namespaces only.
 
----
 
 ## 5. PersistentVolume
 
@@ -97,7 +92,6 @@ An example manifest is at `infra/k8s/core/storage/smb-csi/pv-example.yaml`.
 
 > `nodeStageSecretRef.namespace` must match the namespace where the PVC will be created - that is where Reflector has placed a copy of `smb-creds`.
 
----
 
 ## 6. PersistentVolumeClaim
 

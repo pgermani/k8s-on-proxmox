@@ -4,7 +4,6 @@ Below is how Reflector is deployed and used in this homelab to automatically rep
 
 Instead of duplicating a Secret in every namespace that needs it, Reflector watches a source Secret and keeps copies in sync everywhere. In this setup it is used, for example, to replicate the `smb-creds` Secret, defined once in `default`, to every namespace that mounts SMB volumes.
 
----
 
 ## 1. Prerequisites
 
@@ -13,7 +12,6 @@ Instead of duplicating a Secret in every namespace that needs it, Reflector watc
 | Running RKE2 cluster | See [rke2-bootstrap.md](../../rke2-bootstrap.md) |
 | `helm` on local machine | [Official install guide](https://helm.sh/docs/intro/install/) |
 
----
 
 ## 2. Installation
 
@@ -39,7 +37,6 @@ NAME                         READY   STATUS    RESTARTS   AGE
 reflector-<hash>             1/1     Running   0          1m
 ```
 
----
 
 ## 3. Annotating a Secret for Auto-Replication
 
@@ -64,7 +61,6 @@ kubectl annotate secret smb-creds -n external-services \
 > reflector.v1.k8s.emberstack.com/reflection-auto-namespaces="headscale,jellyfin,gokapi"
 > ```
 
----
 
 ## 4. Verify Replication
 

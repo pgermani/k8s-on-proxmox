@@ -2,23 +2,21 @@
 
 This guide covers bootstrapping a single-control-plane RKE2 cluster (1 CP + N workers) from scratch using the script at `infra/k8s/bootstrap/init-rke2-cluster.sh`.
 
----
 
 ## 1. Prerequisites
 
 | Requirement | Details |
 |---|---|
-| VM template | Ubuntu Noble cloud-init clones — see [proxmox-cloudinit-template.md](proxmox-cloudinit-template.md) |
+| VM template | Ubuntu Noble cloud-init clones - see [proxmox-cloudinit-template.md](proxmox-cloudinit-template.md) |
 | SSH key | A single key pair that grants passwordless access to all nodes |
 | SSH access | All nodes reachable by IP from the machine running the script |
 | Outbound internet | Nodes need to reach `get.rke2.io` and the Ubuntu `apt` mirrors |
 | NFS client | Installed automatically by the script (`nfs-common`) |
-| `kubectl` | Installed on the local machine — [official install guide](https://kubernetes.io/docs/tasks/tools/) |
-| `helm` | Installed on the local machine — [official install guide](https://helm.sh/docs/intro/install/) |
+| `kubectl` | Installed on the local machine - [official install guide](https://kubernetes.io/docs/tasks/tools/) |
+| `helm` | Installed on the local machine - [official install guide](https://helm.sh/docs/intro/install/) |
 
 The script is designed to run from your local machine (macOS or Linux). It SSH-es into each node in sequence.
 
----
 
 ## 2. Network Layout
 
@@ -30,7 +28,6 @@ The script is designed to run from your local machine (macOS or Linux). It SSH-e
 
 > Note: These are environment-specific values. Update the variables at the top of the script before running.
 
----
 
 ## 3. Configuration
 
@@ -47,7 +44,6 @@ WORKER2="<worker2-ip>"         # Worker 2 IP
 
 No other changes are needed for a standard two-worker setup. To add more workers, append to the `WORKERS` array.
 
----
 
 ## 4. What the Script Does
 
@@ -79,7 +75,6 @@ On each worker node the script:
 
 The `rke2.yaml` produced by RKE2 uses `127.0.0.1` as the server address. The script fetches it via SSH and rewrites the address to the control-plane LAN IP, saving the result as `./kubeconfig-rke2.yaml` in the current directory.
 
----
 
 ## 5. Running the [Script](../infra/k8s/bootstrap/init-rke2-cluster.sh)
 
@@ -107,7 +102,6 @@ NAME                  STATUS   ROLES                       AGE   VERSION
 <worker-vm-name-2>    Ready    <none>                      3m    v1.3x.x+rke2rX
 ```
 
----
 
 ## 6. Post-Install Steps
 
@@ -156,7 +150,7 @@ RKE2 agents join without a `worker` role label by default. Add it manually:
 kubectl label node <worker-vm-name> node-role.kubernetes.io/worker=worker
 ```
 
-> **Note:** The node name matches the VM name set in Proxmox at clone time — see [proxmox-cloudinit-template.md](proxmox-cloudinit-template.md). Use `kubectl get nodes` to confirm the exact names registered in the cluster.
+> **Note:** The node name matches the VM name set in Proxmox at clone time - see [proxmox-cloudinit-template.md](proxmox-cloudinit-template.md). Use `kubectl get nodes` to confirm the exact names registered in the cluster.
 
 ### Install the SMB CSI driver
 

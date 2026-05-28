@@ -1,10 +1,8 @@
 # NFS Dynamic Provisioner (nfs-subdir-external-provisioner)
 
-The `nfs-subdir-external-provisioner` runs inside the RKE2 cluster and watches for PVCs referencing the `nfs-truenas` StorageClass. For each one, it automatically creates a dedicated subdirectory on the TrueNAS NFS export and binds it to a PersistentVolume — no manual PV creation needed.
+The `nfs-subdir-external-provisioner` runs inside the RKE2 cluster and watches for PVCs referencing the `nfs-truenas` StorageClass. For each one, it automatically creates a dedicated subdirectory on the TrueNAS NFS export and binds it to a PersistentVolume - no manual PV creation needed.
 
 This provisioner consumes the NFS share configured in TrueNAS as described in [dataset-shares-setup.md](../../truenas/storage/dataset-shares-setup.md).
-
----
 
 ## 1. Prerequisites
 
@@ -17,7 +15,6 @@ This provisioner consumes the NFS share configured in TrueNAS as described in [d
 
 > The bootstrap script installs `nfs-common` on all nodes. If you provisioned nodes manually, run `sudo apt-get install -y nfs-common` on each before proceeding.
 
----
 
 ## 2. Installation
 
@@ -51,7 +48,6 @@ helm install nfs-subdir-external-provisioner \
 
 > **`storageClass.onDelete=true`**: when a PVC is deleted, the corresponding subdirectory on TrueNAS is also removed. Set to `false` to retain data after PVC deletion - useful for stateful workloads where data must survive a redeploy.
 
----
 
 ## 3. Verify the Installation
 
@@ -73,8 +69,6 @@ nfs-subdir-external-provisioner-<hash>            1/1     Running   0          1
 NAME          PROVISIONER                                          RECLAIMPOLICY   VOLUMEBINDINGMODE   AGE
 nfs-truenas   cluster.local/nfs-subdir-external-provisioner       Delete          Immediate           1m
 ```
-
----
 
 ## 4. Testing
 
@@ -123,7 +117,6 @@ kubectl delete pvc test-pvc
 
 > Deleting the PVC also removes the subdirectory on TrueNAS (because `storageClass.onDelete=true`). Verify on TrueNAS that the directory is gone after deletion.
 
----
 
 ## 5. Uninstall
 
