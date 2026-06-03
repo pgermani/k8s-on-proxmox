@@ -1,0 +1,17 @@
+# Wildcard certificate for staging - issued by letsencrypt-dns-staging.
+# See docs/k8s/core/cert-manager-cloudflare.md
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-staging-cert
+  namespace: cert-manager
+spec:
+  secretName: wildcard-staging-tls
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    name: letsencrypt-dns-staging
+    kind: ClusterIssuer
+  dnsNames:
+    - "*.<YOUR-DOMAIN>"
+    - "<YOUR-DOMAIN>"

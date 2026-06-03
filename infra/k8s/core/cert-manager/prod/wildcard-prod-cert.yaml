@@ -1,0 +1,17 @@
+# Wildcard certificate for production - issued by letsencrypt-dns-prod.
+# See docs/k8s/core/cert-manager-cloudflare.md
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-prod-cert
+  namespace: cert-manager
+spec:
+  secretName: wildcard-prod-tls
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    name: letsencrypt-dns-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - "*.<YOUR-DOMAIN>"
+    - "<YOUR-DOMAIN>"

@@ -1,0 +1,20 @@
+# Staging ClusterIssuer - uses Let's Encrypt staging ACME server.
+# Apply this first to validate the setup without hitting production rate limits.
+# See docs/k8s/core/cert-manager-cloudflare.md
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-dns-staging
+  namespace: cert-manager
+spec:
+  acme:
+    email: <YOUR-EMAIL>
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-dns-staging-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
