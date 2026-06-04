@@ -1,0 +1,24 @@
+# Tailscale client on the load balancer VM.
+# Connects to the self-hosted Headscale server and advertises the home network
+# subnet so the full LAN is reachable from any Tailscale-connected device.
+# Replace <VPN-HOSTNAME> and <HOME-NETWORK-CIDR> before running.
+# Copy .env.example to .env and fill in TS_AUTHKEY before starting.
+# See docs/k8s/apps/headscale.md
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.96.5
+    container_name: tailscale
+    hostname: lb-k8s
+    restart: unless-stopped
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_EXTRA_ARGS=--login-server=https://<VPN-HOSTNAME> --advertise-routes=<HOME-NETWORK-CIDR> --accept-routes --hostname=load-balancer
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
+    volumes:
+      - ./state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host

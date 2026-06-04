@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-headscale
+  namespace: headscale
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: nfs-truenas
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-headplane
+  namespace: headscale
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nfs-truenas
+---
+# Dedicated PVC for /etc/headscale/config.yaml.
+# The ConfigMap "headscale-config" acts as a seed on first deploy only.
+# The initContainer copies config.yaml here if it does not already exist.
+# After the first run, this PVC is the source of truth. Headplane can modify
+# config.yaml via its UI and changes survive restarts.
+#
+# To force a reset from the ConfigMap:
+#   kubectl -n headscale exec deploy/headscale -c headscale -- rm /etc/headscale/config.yaml
+#   kubectl -n headscale rollout restart deploy/headscale
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-headscale-config
+  namespace: headscale
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+  storageClassName: nfs-truenas

@@ -1,0 +1,195 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headscale
+  namespace: headscale
+  labels:
+    app: headscale
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: headscale
+  template:
+    metadata:
+      labels:
+        app: headscale
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: bootstrap-extra-records
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /var/lib/headscale/extra-records.json ]; then
+                printf '[{"name":"app.example.myhomelab","type":"A","value":"100.64.0.1"}]\n' \
+                  > /var/lib/headscale/extra-records.json
+              fi
+          volumeMounts:
+            - name: pvc-headscale
+              mountPath: /var/lib/headscale
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+
+        - name: bootstrap-headscale-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /etc/headscale/config.yaml ]; then
+                echo "Seeding config.yaml from ConfigMap (first run)"
+                cp /etc/headscale-source/config.yaml /etc/headscale/config.yaml
+                chmod 0644 /etc/headscale/config.yaml
+              else
+                echo "config.yaml already exists on PVC, leaving it untouched"
+              fi
+          volumeMounts:
+            - name: headscale-config-source
+              mountPath: /etc/headscale-source
+              readOnly: true
+            - name: headscale-config-writable
+              mountPath: /etc/headscale
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+
+      containers:
+        # ---------- headscale ----------
+        - name: headscale
+          image: headscale/headscale:v0.28
+          args: ["serve"]
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+          volumeMounts:
+            - name: headscale-config-writable
+              mountPath: /etc/headscale
+            - name: pvc-headscale
+              mountPath: /var/lib/headscale
+            - name: socket
+              mountPath: /var/run/headscale
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+        # ---------- headplane ----------
+        - name: headplane
+          image: ghcr.io/tale/headplane:0.6.3
+          ports:
+            - name: ui
+              containerPort: 3000
+          volumeMounts:
+            - name: headplane-config
+              mountPath: /etc/headplane
+              readOnly: true
+            - name: headplane-secrets
+              mountPath: /etc/headplane/secrets
+              readOnly: true
+            - name: headscale-config-writable
+              mountPath: /etc/headscale
+            - name: pvc-headscale
+              mountPath: /var/lib/headscale
+            - name: pvc-headplane
+              mountPath: /var/lib/headplane
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      volumes:
+        - name: headscale-config-source
+          configMap:
+            name: headscale-config
+        - name: headscale-config-writable
+          persistentVolumeClaim:
+            claimName: pvc-headscale-config
+        - name: headplane-config
+          configMap:
+            name: headplane-config
+        - name: headplane-secrets
+          secret:
+            secretName: headplane-secrets
+        - name: pvc-headscale
+          persistentVolumeClaim:
+            claimName: pvc-headscale
+        - name: pvc-headplane
+          persistentVolumeClaim:
+            claimName: pvc-headplane
+        - name: socket
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headscale
+  namespace: headscale
+  labels:
+    app: headscale
+spec:
+  selector:
+    app: headscale
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headplane
+  namespace: headscale
+  labels:
+    app: headplane
+spec:
+  selector:
+    app: headscale
+  ports:
+    - name: ui
+      port: 3000
+      targetPort: 3000

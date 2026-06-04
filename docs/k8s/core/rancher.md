@@ -58,7 +58,7 @@ Expected output: `READY 3/3` (Rancher runs 3 replicas by default).
 Rather than editing `/etc/hosts` on individual machines, add a DNS record in Pi-hole so the hostname resolves for every device on the network.
 
 1. Open the Pi-hole web UI
-2. Navigate to **Local DNS → DNS Records**
+2. Navigate to **Local DNS -> DNS Records**
 3. Add a new record:
    - **Domain**: `<RANCHER-HOSTNAME>` (e.g. `rancher.homelab`)
    - **IP Address**: `<LB-IP>` (the load balancer VM's LAN IP)

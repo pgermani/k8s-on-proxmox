@@ -1,0 +1,33 @@
+# Replace <VPN-HOSTNAME> with the public hostname for Headscale/Headplane (e.g. headscale.example.com).
+# See docs/k8s/apps/headscale.md
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headscale
+  namespace: headscale
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - <VPN-HOSTNAME>
+      secretName: wildcard-prod-tls
+  rules:
+    - host: <VPN-HOSTNAME>
+      http:
+        paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: headplane
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: headscale
+                port:
+                  number: 8080
