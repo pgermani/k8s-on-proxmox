@@ -6,6 +6,9 @@ Headscale is a self-hosted implementation of the Tailscale control server. Tails
 
 Headplane provides a web UI at `https://<VPN-HOSTNAME>/admin` for managing nodes, users, and pre-auth keys. Headscale handles all Tailscale client traffic at the root path on the same hostname.
 
+![VPN access diagram](../../diagrams/vpn-access-diagram.png)
+
+---
 
 ## 1. Prerequisites
 
@@ -198,11 +201,18 @@ Once connected, the full home network is accessible as if on the local LAN.
 
 ## 8. Internal DNS Records
 
-Headplane allows defining custom DNS records scoped to the Tailscale network. This makes it possible to reach internal services by hostname when connected to the VPN, without exposing them publicly.
+Headscale's Magic DNS automatically registers every connected node at `[device].<MAGIC-DNS-DOMAIN>`, no manual configuration needed for device-to-device resolution.
 
-Navigate to **DNS -> DNS Records -> Add DNS record** in Headplane and add an `A` record for each internal service, pointing to the load balancer's Tailscale IP.
+The **DNS Records** tab in Headplane is for additional entries not tied to a specific device: service endpoints, internal hostnames, or anything that should be reachable by name through the VPN.
 
-The load balancer's Tailscale IP can be found in **Machines** (it is in the `100.64.0.0/10` range assigned by Headscale).
+A practical example is the Kubernetes API server. Adding this record:
 
+| Name | Type | Value |
+|---|---|---|
+| `k8s-api.myhomelab` | A | `<LB-TAILSCALE-IP>` |
 
-> These records are only resolvable when connected to the Tailscale network.
+allows running `kubectl` from anywhere on the Tailscale network without exposing port 6443 publicly. The load balancer forwards the traffic to the control plane internally.
+
+> For this to work, `k8s-api.myhomelab` must also be added as a TLS SAN on the RKE2 control plane, otherwise `kubectl` will reject the API server certificate. See the TLS SANs step in [rke2-bootstrap.md](../../rke2-bootstrap.md).
+
+Update the kubeconfig server address to `https://k8s-api.myhomelab:6443` to use it remotely.
