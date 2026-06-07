@@ -1,5 +1,5 @@
 # Replace all placeholders before applying:
-#   <VPN-HOSTNAME>      - public hostname for Headscale/Headplane (e.g. headscale.example.com)
+#   <VPN-HOSTNAME>.<YOUR-DOMAIN>  - public hostname for Headscale/Headplane (e.g. headscale.example.com)
 #   <MAGIC-DNS-DOMAIN>  - Headscale Magic DNS base domain (e.g. example.myhomelab)
 # See docs/k8s/apps/headscale.md
 apiVersion: v1
@@ -9,7 +9,7 @@ metadata:
   namespace: headscale
 data:
   config.yaml: |
-    server_url: https://<VPN-HOSTNAME>
+    server_url: https://<VPN-HOSTNAME>.<YOUR-DOMAIN>
 
     listen_addr: 0.0.0.0:8080
     metrics_listen_addr: 0.0.0.0:9090
@@ -89,7 +89,7 @@ data:
     server:
       host: "0.0.0.0"
       port: 3000
-      base_url: "https://<VPN-HOSTNAME>"
+      base_url: "https://<VPN-HOSTNAME>.<YOUR-DOMAIN>"
       cookie_secret_path: "/etc/headplane/secrets/cookie_secret"
       cookie_secure: true
       cookie_max_age: 86400
@@ -97,7 +97,7 @@ data:
 
     headscale:
       url: "http://localhost:8080"
-      public_url: "https://<VPN-HOSTNAME>"
+      public_url: "https://<VPN-HOSTNAME>.<YOUR-DOMAIN>"
       config_path: "/etc/headscale/config.yaml"
       dns_records_path: "/var/lib/headscale/extra-records.json"
 

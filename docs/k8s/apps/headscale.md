@@ -4,7 +4,7 @@ Below is how Headscale and its web UI Headplane are deployed in this homelab as 
 
 Headscale is a self-hosted implementation of the Tailscale control server. Tailscale clients on the load balancer VM and on TrueNAS advertise the home network subnet (example: `192.168.178.0/24`), making it accessible from anywhere as if on the local network, including SMB shares on TrueNAS and internal services that are not publicly exposed.
 
-Headplane provides a web UI at `https://<VPN-HOSTNAME>/admin` for managing nodes, users, and pre-auth keys. Headscale handles all Tailscale client traffic at the root path on the same hostname.
+Headplane provides a web UI at `https://<VPN-HOSTNAME>.<YOUR-DOMAIN>/admin` for managing nodes, users, and pre-auth keys. Headscale handles all Tailscale client traffic at the root path on the same hostname.
 
 ![VPN access diagram](../../diagrams/vpn-access-diagram.png)
 
@@ -17,7 +17,7 @@ Headplane provides a web UI at `https://<VPN-HOSTNAME>/admin` for managing nodes
 | Running RKE2 cluster | See [rke2-bootstrap.md](../../rke2-bootstrap.md) |
 | NFS provisioner | See [nfs-provisioner.md](../storage/nfs-provisioner.md) - PVCs use `nfs-truenas` |
 | Wildcard TLS certificate | See [cert-manager-cloudflare.md](../core/cert-manager-cloudflare.md) - `wildcard-prod-tls` must be available in the `headscale` namespace via Reflector |
-| Public DNS record | `<VPN-HOSTNAME>` must point to the load balancer public IP via Cloudflare |
+| Public DNS record | `<YOUR-DOMAIN>` must point to the router public IP via Cloudflare, with port 443 forwarded from the router to the load balancer VM |
 
 
 ## 2. Architecture
@@ -48,7 +48,7 @@ The `headscale-config` ConfigMap is used as a **seed only**. On first boot, an i
 
 ### Ingress routing
 
-Both services are exposed on `<VPN-HOSTNAME>` via a single Ingress:
+Both services are exposed on `<VPN-HOSTNAME>.<YOUR-DOMAIN>` via a single Ingress:
 
 | Path | Backend | Purpose |
 |---|---|---|
@@ -69,7 +69,7 @@ Before applying, replace all placeholders across the manifest files:
 | Placeholder | File(s) | Description |
 |---|---|---|
 | `<COOKIE-SECRET>` | `secret.yaml` | the generated hex string |
-| `<VPN-HOSTNAME>` | `configmaps.yaml`, `ingress.yaml` | public hostname for Headscale/Headplane |
+| `<VPN-HOSTNAME>.<YOUR-DOMAIN>` | `configmaps.yaml`, `ingress.yaml` | public hostname for Headscale/Headplane |
 | `<MAGIC-DNS-DOMAIN>` | `configmaps.yaml` | Headscale Magic DNS base domain |
 
 Then apply all manifests in order:
@@ -103,7 +103,7 @@ Copy the printed key (it is shown only once).
 
 ## 5. Access Headplane
 
-Open `https://<VPN-HOSTNAME>/admin` in a browser. Log in using the API key generated in the previous step.
+Open `https://<VPN-HOSTNAME>.<YOUR-DOMAIN>/admin` in a browser. Log in using the API key generated in the previous step.
 
 
 ## 6. Connecting Clients
@@ -167,7 +167,7 @@ Tailscale is installed on TrueNAS via the built-in app catalog (community apps).
 | Accept Routes | disabled - TrueNAS only advertises, does not consume routes |
 | Advertise Exit Node | disabled |
 | Advertise Routes | `<HOME-NETWORK-CIDR>` |
-| Extra Arguments | `--login-server=https://<VPN-HOSTNAME>` |
+| Extra Arguments | `--login-server=https://<VPN-HOSTNAME>.<YOUR-DOMAIN>` |
 
 **Network Configuration**
 
@@ -194,7 +194,7 @@ Once both clients are connected and routes are approved, the home network is rea
 
 Install the Tailscale client on any device (macOS, Windows, iOS, Android, Linux) from [tailscale.com/download](https://tailscale.com/download).
 
-When prompted for a control server, set it to `https://<VPN-HOSTNAME>` instead of the default Tailscale server. Authenticate using a pre-auth key generated in Headplane, either the existing `admin` key if you are the sole administrator, or a dedicated key per user or device created via **Machines -> Add Device -> Generate Pre-auth Key**.
+When prompted for a control server, set it to `https://<VPN-HOSTNAME>.<YOUR-DOMAIN>` instead of the default Tailscale server. Authenticate using a pre-auth key generated in Headplane, either the existing `admin` key if you are the sole administrator, or a dedicated key per user or device created via **Machines -> Add Device -> Generate Pre-auth Key**.
 
 Once connected, the full home network is accessible as if on the local LAN.
 
