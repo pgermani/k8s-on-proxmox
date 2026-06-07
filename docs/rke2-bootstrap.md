@@ -135,6 +135,8 @@ mv ./kubeconfig-merged.yaml ~/.kube/config
 chmod 600 ~/.kube/config
 ```
 
+> To re-download and re-merge the kubeconfig at any time, use `infra/k8s/bootstrap/update-kubeconfig.sh`. It handles the rename and merge automatically.
+
 After either step, verify the active context:
 
 ```bash
