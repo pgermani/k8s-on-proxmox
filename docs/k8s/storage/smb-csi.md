@@ -80,14 +80,6 @@ SMB volumes are static: each PV is defined manually and points to a specific pat
 
 The `storageClassName` is a free-form label used only to bind the PV to the matching PVC - no StorageClass object is required.
 
-Naming convention used in this setup:
-
-| Field | Pattern | Example |
-|---|---|---|
-| PV name | `pv-<app>-smb-<pool>` | `pv-jellyfin-smb` |
-| `volumeHandle` | `<app>-smb-<pool>` | `jellyfin-smb` |
-| `storageClassName` | `smb-<pool>-<dataset>` | `smb-media` |
-
 An example manifest is at `infra/k8s/core/storage/smb-csi/pv-example.yaml`.
 
 > `nodeStageSecretRef.namespace` must match the namespace where the PVC will be created - that is where Reflector has placed a copy of `smb-creds`.

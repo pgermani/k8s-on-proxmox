@@ -1,0 +1,26 @@
+# Replace <JELLYFIN-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for Jellyfin (e.g. jellyfin.example.com).
+# See docs/k8s/apps/jellyfin.md
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"  # false for internal local use
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <JELLYFIN-HOSTNAME>.<YOUR-DOMAIN>
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: jellyfin
+            port:
+              number: 8096
+  tls:
+  - hosts:
+    - <JELLYFIN-HOSTNAME>.<YOUR-DOMAIN>
+    secretName: wildcard-prod-tls

@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: jellyfin
+    app.kubernetes.io/instance: jellyfin
+    app.kubernetes.io/name: jellyfin
+  name: jellyfin
+  namespace: jellyfin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+        app.kubernetes.io/name: jellyfin
+    spec:
+      containers:
+      - image: lscr.io/linuxserver/jellyfin:latest
+        imagePullPolicy: Always
+        name: jellyfin
+        ports:
+        - containerPort: 8096
+          name: web
+          protocol: TCP
+        env:
+        - name: TZ
+          value: Europe/Rome
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        volumeMounts:
+        - mountPath: /config
+          name: jellyfin-nfs
+          subPath: config
+        - mountPath: /cache
+          name: jellyfin-nfs
+          subPath: cache
+        - mountPath: "/films"
+          readOnly: false
+          name: jellyfin-smb
+          subPath: tv/films
+        - mountPath: "/tv-series"
+          readOnly: false
+          name: jellyfin-smb
+          subPath: tv/tv-series
+        - mountPath: "/anime"
+          readOnly: false
+          name: jellyfin-smb
+          subPath: tv/anime
+        - mountPath: "/christmas"
+          readOnly: false
+          name: jellyfin-smb
+          subPath: tv/christmas
+        - mountPath: "/shows"
+          readOnly: false
+          name: jellyfin-smb
+          subPath: tv/shows
+      volumes:
+        - name: jellyfin-nfs
+          persistentVolumeClaim:
+            claimName: pvc-jellyfin
+        - name: jellyfin-smb
+          persistentVolumeClaim:
+            claimName: pvc-jellyfin-smb-kingspec
