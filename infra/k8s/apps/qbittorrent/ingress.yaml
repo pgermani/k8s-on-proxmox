@@ -1,0 +1,25 @@
+# Replace <QBITTORRENT-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for qbittorrent (e.g. qbittorrent.example.com).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qbittorrent
+  namespace: qbittorrent
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <QBITTORRENT-HOSTNAME>.<YOUR-DOMAIN>
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: qbittorrent
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - <QBITTORRENT-HOSTNAME>.<YOUR-DOMAIN>
+    secretName: wildcard-prod-tls

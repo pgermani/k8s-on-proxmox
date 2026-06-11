@@ -28,6 +28,8 @@ The SMB PV maps `//smb-server.external-services.svc.cluster.local/data/media` to
 
 The `smb-creds` Secret is referenced in the `jellyfin` namespace. Reflector replicates it there automatically once the annotation is set on the source Secret in `external-services`.
 
+> **qbittorrent** mounts the same `data/media` SMB share and downloads files to `data/media/downloads/`. Moving a completed download into the appropriate subdirectory (e.g. `tv/films/`) makes it immediately visible to Jellyfin.
+
 
 ## 3. Deploy
 
