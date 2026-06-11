@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gokapi
+  namespace: gokapi
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: gokapi
+  ports:
+    - name: http
+      port: 80
+      targetPort: 53842
+      protocol: TCP

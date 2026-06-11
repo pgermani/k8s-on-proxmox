@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gokapi
+    app.kubernetes.io/instance: gokapi
+    app.kubernetes.io/name: gokapi
+  name: gokapi
+  namespace: gokapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gokapi
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gokapi
+        app.kubernetes.io/name: gokapi
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: gokapi
+          image: f0rc3/gokapi:v2.2.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 53842
+              protocol: TCP
+          env:
+            - name: TZ
+              value: "Europe/Rome"
+            - name: WEBSERVER_PORT
+              value: "53842"
+          volumeMounts:
+            - name: storage
+              mountPath: /app/data
+              subPath: data
+            - name: storage
+              mountPath: /app/config
+              subPath: config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "1000m"
+              memory: "5Gi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 53842
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 53842
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: pvc-gokapi

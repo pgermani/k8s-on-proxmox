@@ -1,0 +1,33 @@
+# Replace <GOKAPI-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for gokapi (e.g. gokapi.example.com).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gokapi
+  namespace: gokapi
+  labels:
+    app.kubernetes.io/name: gokapi
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: <GOKAPI-HOSTNAME>.<YOUR-DOMAIN>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gokapi
+                port:
+                  number: 80
+  tls:
+  - hosts:
+    - <GOKAPI-HOSTNAME>.<YOUR-DOMAIN>
+    secretName: wildcard-prod-tls
