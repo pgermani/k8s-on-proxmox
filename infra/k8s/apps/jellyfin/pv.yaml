@@ -3,7 +3,7 @@ kind: PersistentVolume
 metadata:
   annotations:
     pv.kubernetes.io/provisioned-by: smb.csi.k8s.io
-  name: pv-jellyfin-smb-kingspec
+  name: pv-jellyfin-smb
 spec:
   capacity:
     storage: 100Gi
@@ -17,9 +17,8 @@ spec:
   csi:
     driver: smb.csi.k8s.io
     readOnly: false
-    # volumeHandle format: {smb-server-address}#{sub-dir-name}#{share-name}
     # make sure this value is unique for every share in the cluster
-    volumeHandle: csi-jellyfin-smb-kingspec
+    volumeHandle: csi-jellyfin-smb
     volumeAttributes:
       source: "//smb-server.external-services.svc.cluster.local/data/media"
     nodeStageSecretRef:

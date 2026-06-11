@@ -6,7 +6,7 @@ metadata:
   name: jellyfin
   namespace: jellyfin
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"  # false for internal local use
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
   rules:

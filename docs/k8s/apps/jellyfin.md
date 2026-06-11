@@ -14,7 +14,7 @@ Jellyfin uses a two-volume storage model: NFS for configuration and cache (dynam
 | SMB CSI driver | See [smb-csi.md](../storage/smb-csi.md) - media PV uses `smb.csi.k8s.io` |
 | `smb-creds` Secret | Must exist in the `external-services` namespace with Reflector replication enabled - see [smb-csi.md section 4](../storage/smb-csi.md) |
 | Wildcard TLS certificate | See [cert-manager-cloudflare.md](../core/cert-manager-cloudflare.md) - `wildcard-prod-tls` must be available in the `jellyfin` namespace via Reflector |
-| SMB media share on TrueNAS | Share path: `data/media` on the `kingSpec` pool - see [dataset-shares-setup.md](../../truenas/storage/dataset-shares-setup.md) |
+| SMB media share on TrueNAS | Share path: `data/media` on the pool - see [dataset-shares-setup.md](../../truenas/storage/dataset-shares-setup.md) |
 
 
 ## 2. Storage Layout
@@ -22,7 +22,7 @@ Jellyfin uses a two-volume storage model: NFS for configuration and cache (dynam
 | Volume | Type | Mount path | Purpose |
 |---|---|---|---|
 | `pvc-jellyfin` | NFS dynamic | `/config`, `/cache` | Jellyfin config and transcoding cache |
-| `pvc-jellyfin-smb-kingspec` | SMB static | `/films`, `/tv-series`, `/anime`, `/christmas`, `/shows` | Media library |
+| `pvc-jellyfin-smb` | SMB static | `/films`, `/tv-series`, `/anime`, `/christmas`, `/shows` | Media library |
 
 The SMB PV maps `//smb-server.external-services.svc.cluster.local/data/media` to the cluster. Each media category is a subdirectory under `data/media/tv/` on TrueNAS and is mounted at its own path inside the container so Jellyfin sees them as separate libraries. SMB is used instead of NFS for the media library because the same share can be mounted simultaneously from desktop clients, making it easy to add or manage files.
 

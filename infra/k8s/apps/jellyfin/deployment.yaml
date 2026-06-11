@@ -66,4 +66,4 @@ spec:
             claimName: pvc-jellyfin
         - name: jellyfin-smb
           persistentVolumeClaim:
-            claimName: pvc-jellyfin-smb-kingspec
+            claimName: pvc-jellyfin-smb

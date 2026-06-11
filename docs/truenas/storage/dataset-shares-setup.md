@@ -115,7 +115,7 @@ This user will later be used by Kubernetes (via the SMB CSI driver) to authentic
 2. Click **Add**
 3. Configure the share:
 
-- **Path**: select the dataset path (example: `/mnt/kingSpec/data`)
+- **Path**: select the dataset path (example: `/mnt/crucial/data`)
 - **Name**: share name (example `data`)
 - **Purpose**: default
 
