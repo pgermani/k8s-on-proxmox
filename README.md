@@ -95,6 +95,16 @@ Client requests follow a defined path through the infrastructure down to workloa
 
 TLS certificates are issued using DNS-01 challenges via cert-manager.
 
+## Remote Access (VPN)
+
+Remote access to the homelab is provided through **Headscale**, a self-hosted implementation of the Tailscale control plane, deployed as a workload inside the cluster.
+
+![VPN Access Diagram](docs/diagrams/vpn-access-diagram.png)
+
+This allows authenticated clients to reach internal services without exposing them publicly.
+
+For setup details, see [docs/k8s/apps/headscale.md](docs/k8s/apps/headscale.md).
+
 ## Contributing
 
 Feedback, corrections, and suggestions are welcome. If you notice architectural inconsistencies, configuration mistakes, or potential improvements, feel free to open an issue.
