@@ -1,0 +1,9 @@
+# Phase 3 - RKE2 control plane configuration after the switchover.
+# Ingress NGINX is removed, Traefik becomes the only ingress controller.
+#
+# Target file on the control plane node: /etc/rancher/rke2/config.yaml
+# Replaces the ingress-controller block set in phase 1.
+#
+# See docs/k8s/core/ingress-traefik-migration.md
+ingress-controller:
+  - traefik

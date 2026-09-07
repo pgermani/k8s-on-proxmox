@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # -- Configuration ----------------------------------------------------------
-INSTALL_RKE2_VERSION="v1.32.7+rke2r1"
+INSTALL_RKE2_VERSION="v1.32.13+rke2r1"
 
 SSH_USER="<ssh-user>"
 CERT_PATH="<path-to-ssh-key>"

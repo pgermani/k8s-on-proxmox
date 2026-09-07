@@ -1,0 +1,37 @@
+# Phase 1 - Traefik configuration during the dual-controller stage.
+#
+# Traefik binds to temporary host ports (8000/8443) so Ingress NGINX keeps
+# serving production traffic on 80/443 while Traefik is validated in parallel.
+#
+# The kubernetesIngressNGINX provider is Traefik's compatibility layer: it reads
+# Ingress resources carrying nginx.ingress.kubernetes.io/* annotations and
+# translates them, so application manifests do not need to be rewritten.
+#
+# Target file on the control plane node:
+#   /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml
+#
+# > Note: the provider key below was renamed in the June releases (v1.36.2+,
+# > v1.35.6+, v1.34.9+, v1.33.13+). Earlier releases spell it
+# > `kubernetesIngressNginx` (lowercase "nginx"), and the v1.32 line is not among
+# > the renamed ones - so on a v1.32 cluster the lowercase spelling is the likely
+# > one. A wrong key is silently ignored and the provider never starts: confirm
+# > with `kubectl logs -n kube-system -l app.kubernetes.io/name=traefik`.
+#
+# See docs/k8s/core/ingress-traefik-migration.md
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        hostPort: 8000
+      websecure:
+        hostPort: 8443
+    providers:
+      kubernetesIngressNGINX:
+        enabled: true
+        ingressClass: "rke2-ingress-nginx-migration"
+        controllerClass: "rke2.cattle.io/ingress-nginx-migration"

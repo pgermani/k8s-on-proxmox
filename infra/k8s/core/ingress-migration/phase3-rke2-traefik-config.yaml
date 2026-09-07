@@ -1,0 +1,28 @@
+# Phase 3 - Traefik configuration after the switchover.
+#
+# The `ports` block is removed so Traefik falls back to the chart defaults and
+# binds to host ports 80/443, taking over the traffic previously served by
+# Ingress NGINX. No load balancer change is required: the upstream in
+# infra/load-balancer/nginx/conf/nginx.conf still points at <worker-ip>:443.
+#
+# The kubernetesIngressNGINX provider stays enabled because the migrated
+# Ingress resources keep the `rke2-ingress-nginx-migration` class and their
+# nginx.ingress.kubernetes.io/* annotations.
+#
+# > Note: keep the same provider key spelling used in phase 1 - `kubernetesIngressNginx`
+# > (lowercase "nginx") on releases older than v1.36.2 / v1.35.6 / v1.34.9 / v1.33.13,
+# > which includes the v1.32 line.
+#
+# See docs/k8s/core/ingress-traefik-migration.md
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    providers:
+      kubernetesIngressNGINX:
+        enabled: true
+        ingressClass: "rke2-ingress-nginx-migration"
+        controllerClass: "rke2.cattle.io/ingress-nginx-migration"

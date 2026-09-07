@@ -1,0 +1,10 @@
+# Phase 1 - RKE2 control plane configuration.
+# Runs Ingress NGINX and Traefik side by side during the migration.
+#
+# Target file on the control plane node: /etc/rancher/rke2/config.yaml
+# Merge these keys into the existing file, do not overwrite it.
+#
+# See docs/k8s/core/ingress-traefik-migration.md
+ingress-controller:
+  - ingress-nginx
+  - traefik
