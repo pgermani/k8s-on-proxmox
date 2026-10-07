@@ -1,14 +1,17 @@
 # Replace <JELLYFIN-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for Jellyfin (e.g. jellyfin.example.com).
 # See docs/k8s/apps/jellyfin.md
+#
+# ingressClassName is "traefik" (native), not a leftover from the Ingress
+# NGINX -> Traefik migration - see docs/k8s/core/ingress-traefik-migration.md.
+# No ssl-redirect annotation is needed: HTTP -> HTTPS is handled once, globally,
+# at the Traefik entrypoint (see rke2-traefik-config.yaml).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: jellyfin
   namespace: jellyfin
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: <JELLYFIN-HOSTNAME>.<YOUR-DOMAIN>
     http:

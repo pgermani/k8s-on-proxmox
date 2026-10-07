@@ -1,4 +1,17 @@
 # Replace <GOKAPI-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for gokapi (e.g. gokapi.example.com).
+#
+# ingressClassName is "traefik" (native), not a leftover from the Ingress
+# NGINX -> Traefik migration - see docs/k8s/core/ingress-traefik-migration.md.
+# None of the nginx.ingress.kubernetes.io/* annotations this Ingress used to
+# carry need a native equivalent: ssl-redirect is handled once, globally, at
+# the Traefik entrypoint; proxy-buffering/proxy-request-buffering have no
+# Traefik equivalent because Traefik never buffers by default (unlike NGINX);
+# proxy-body-size has no default limit to raise; and the three
+# proxy-*-timeout annotations controlled the NGINX-to-backend leg, where
+# Traefik's own defaults are already effectively unlimited. The one real gap
+# is the entrypoint's client-facing readTimeout (60s default, see
+# rke2-traefik-config.yaml), raised globally to 600s because this app is the
+# one that needs it - large, slow uploads were getting cut off otherwise.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,16 +19,8 @@ metadata:
   namespace: gokapi
   labels:
     app.kubernetes.io/name: gokapi
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "0"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-buffering: "off"
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
     - host: <GOKAPI-HOSTNAME>.<YOUR-DOMAIN>
       http:
