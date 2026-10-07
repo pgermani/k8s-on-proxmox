@@ -28,6 +28,19 @@
 # cluster uses DNS-01). To test an app over plain HTTP, bypass the Ingress
 # entirely with `kubectl port-forward` to its Service instead.
 #
+# transport.respondingTimeouts.readTimeout is raised to 600s on both
+# entrypoints. Traefik's own default (60s, since v2.11.2) caps the time
+# allowed to read an entire incoming request, body included - a real cutoff,
+# not a theoretical one: gokapi's validated 2GB upload (see
+# docs/k8s/core/ingress-traefik-migration.md) took 111s, well past the
+# default. Unlike the three nginx.ingress.kubernetes.io/proxy-*-timeout
+# annotations gokapi used to carry, this has no native per-Ingress or
+# per-Service equivalent - entrypoint read timeouts are a property of the
+# underlying Go HTTP server, shared by every route on that entrypoint. 600s
+# matches the bound already validated under Ingress NGINX, rather than
+# disabling the timeout outright (0s) on a cluster reachable from the
+# internet.
+#
 # See docs/k8s/core/ingress-traefik-migration.md
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
@@ -44,6 +57,13 @@ spec:
               to: websecure
               scheme: https
               permanent: true
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s
+      websecure:
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s
     providers:
       kubernetesIngressNginx:
         enabled: true
