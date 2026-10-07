@@ -154,6 +154,31 @@ kubectl label node <worker-vm-name> node-role.kubernetes.io/worker=worker
 
 > **Note:** The node name matches the VM name set in Proxmox at clone time - see [proxmox-cloudinit-template.md](proxmox-cloudinit-template.md). Use `kubectl get nodes` to confirm the exact names registered in the cluster.
 
+### Choose the Ingress Controller
+
+RKE2 defaults to Ingress NGINX when `ingress-controller` is not set in `config.yaml`. The `kubernetes/ingress-nginx` project reached end-of-life in **March 2026**, and RKE2 itself deprecates it starting with v1.36 and removes it in v1.37, replacing it with Traefik as the default.
+
+For a new cluster, skip Ingress NGINX entirely. Before installing anything else (cert-manager, Rancher, applications), add this to `/etc/rancher/rke2/config.yaml` on the control plane and restart:
+
+```yaml
+ingress-controller:
+  - traefik
+```
+
+```bash
+sudo systemctl restart rke2-server
+```
+
+Verify:
+
+```bash
+kubectl get daemonset -n kube-system
+```
+
+Expect `rke2-traefik` running, and no `rke2-ingress-nginx-controller` at all.
+
+> If you are instead working with an existing cluster that already runs Ingress NGINX in production, do not use this shortcut - follow [ingress-traefik-migration.md](k8s/core/ingress-traefik-migration.md) instead, which moves traffic over in phases without downtime.
+
 ### Install the SMB CSI driver
 
 Required for static volumes backed by TrueNAS SMB shares. See [smb-csi.md](k8s/storage/smb-csi.md) for the full setup.

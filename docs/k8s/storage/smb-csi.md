@@ -7,7 +7,7 @@ Unlike the NFS provisioner, SMB volumes are **static**: each PV is defined manua
 The setup involves four independent pieces that build on each other:
 
 1. The CSI driver (Helm) - runs on every node and handles mount/unmount
-2. A headless Service + Endpoints - exposes the TrueNAS SMB server inside the cluster by DNS name
+2. A Service + Endpoints - exposes the TrueNAS SMB server inside the cluster by DNS name
 3. A Secret with SMB credentials - replicated across namespaces via [Reflector](../core/reflector.md)
 4. PersistentVolume + PersistentVolumeClaim - one PV/PVC pair per application, each pointing to the application's dedicated path on TrueNAS
 
@@ -43,7 +43,9 @@ Expected output: one pod per node, all `Running`.
 
 ## 3. Expose TrueNAS SMB Inside the Cluster
 
-Rather than hardcoding the TrueNAS IP in every PV, a headless Service with manually-defined Endpoints is created in the `external-services` namespace. This makes the SMB server reachable inside the cluster via the stable DNS name `smb-server.external-services.svc.cluster.local`.
+Rather than hardcoding the TrueNAS IP in every PV, a Service with manually-defined Endpoints is created in the `external-services` namespace. This makes the SMB server reachable inside the cluster via the stable DNS name `smb-server.external-services.svc.cluster.local`.
+
+> Note: this Service is intentionally **not** headless (`clusterIP: None`). See the comment in `smb-server-service.yaml` - a headless Service with manually-managed Endpoints breaks under Traefik (see [ingress-traefik-migration.md](../core/ingress-traefik-migration.md#54-known-issue-headless-services-used-for-external-endpoints)).
 
 The manifest is at `infra/k8s/core/storage/smb-csi/smb-server-service.yaml`. Replace `<TRUENAS-IP>` with the actual TrueNAS LAN IP before applying.
 

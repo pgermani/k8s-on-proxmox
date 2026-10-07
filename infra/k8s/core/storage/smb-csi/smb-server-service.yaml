@@ -1,5 +1,16 @@
-# Exposes the TrueNAS SMB server inside the cluster as a headless service.
+# Exposes the TrueNAS SMB server inside the cluster as a Service + Endpoints.
 # See docs/k8s/storage/smb-csi.md
+#
+# NOTE: this Service is deliberately NOT headless (no clusterIP: None), and the
+# Endpoints port is named to match the Service port. Found during the
+# Ingress NGINX -> Traefik migration (see docs/k8s/core/ingress-traefik-migration.md,
+# section 5.4): a headless, selectorless Service with manually-managed
+# Endpoints makes Traefik return "503 no available server" (a known Traefik
+# limitation, Ingress NGINX is unaffected); and once made non-headless, a
+# mismatched port name between the Service and its Endpoints silently breaks
+# kube-proxy's ClusterIP routing ("connection refused", even though
+# `kubectl get endpoints` looks correct) - harmless while headless, since a
+# headless Service gets no kube-proxy ClusterIP routing at all.
 apiVersion: v1
 kind: Endpoints
 metadata:
@@ -9,7 +20,8 @@ subsets:
   - addresses:
       - ip: <TRUENAS-IP>
     ports:
-      - port: 445
+      - name: smb
+        port: 445
         protocol: TCP
 ---
 apiVersion: v1
@@ -19,7 +31,6 @@ metadata:
   namespace: external-services
 spec:
   type: ClusterIP
-  clusterIP: None
   ports:
     - name: smb
       port: 445
