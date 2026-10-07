@@ -13,6 +13,21 @@
 # > (lowercase "nginx") on releases older than v1.36.2 / v1.35.6 / v1.34.9 / v1.33.13,
 # > which includes the v1.32 line.
 #
+# The `web` entrypoint (port 80) redirects every request to `websecure` (port
+# 443). This replicates, explicitly, a default that Ingress NGINX gave for
+# free: it redirects HTTP to HTTPS automatically whenever an Ingress has a
+# `tls:` block, with no annotation needed. Traefik has no such implicit
+# behaviour - without this block, an Ingress with a `tls:` section would still
+# serve plain HTTP on port 80 unless redirected per-router. This same block is
+# also documented in docs/rke2-bootstrap.md ("Choose the Ingress Controller"),
+# so a fresh install and a migrated cluster end up configured identically -
+# RKE2's own rke2-traefik chart ships this redirect commented out by default.
+#
+# The redirect is unconditional once set: there is no per-Ingress opt-out
+# (aside from the ACME HTTP-01 challenge path, irrelevant here since this
+# cluster uses DNS-01). To test an app over plain HTTP, bypass the Ingress
+# entirely with `kubectl port-forward` to its Service instead.
+#
 # See docs/k8s/core/ingress-traefik-migration.md
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
@@ -21,6 +36,14 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
+    ports:
+      web:
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
     providers:
       kubernetesIngressNginx:
         enabled: true

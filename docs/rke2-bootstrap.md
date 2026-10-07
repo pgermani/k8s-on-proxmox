@@ -179,6 +179,32 @@ Expect `rke2-traefik` running, and no `rke2-ingress-nginx-controller` at all.
 
 > If you are instead working with an existing cluster that already runs Ingress NGINX in production, do not use this shortcut - follow [ingress-traefik-migration.md](k8s/core/ingress-traefik-migration.md) instead, which moves traffic over in phases without downtime.
 
+**Redirect HTTP to HTTPS.** Ingress NGINX did this automatically and silently - any Ingress with a `tls:` block gets redirected with no annotation needed. Traefik has no such implicit behaviour: without explicit configuration, an Ingress with a `tls:` section still serves plain HTTP on port 80 unchanged. RKE2's own `rke2-traefik` chart ships this redirect commented out by default, so add it explicitly via a `HelmChartConfig` at `/var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml`:
+
+```yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+```
+
+```bash
+sudo systemctl restart rke2-server
+```
+
+> Note: this redirect is unconditional once set - there is no per-Ingress opt-out (aside from the ACME HTTP-01 challenge path, not applicable if certificates are issued via DNS-01 as in this homelab, see [cert-manager-cloudflare.md](k8s/core/cert-manager-cloudflare.md)). To test an app over plain HTTP, bypass the Ingress entirely with `kubectl port-forward` to its Service instead.
+
 ### Install the SMB CSI driver
 
 Required for static volumes backed by TrueNAS SMB shares. See [smb-csi.md](k8s/storage/smb-csi.md) for the full setup.
