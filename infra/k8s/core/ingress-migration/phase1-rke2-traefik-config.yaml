@@ -31,7 +31,7 @@ spec:
       websecure:
         hostPort: 8443
     providers:
-      kubernetesIngressNGINX:
+      kubernetesIngressNginx:
         enabled: true
         ingressClass: "rke2-ingress-nginx-migration"
         controllerClass: "rke2.cattle.io/ingress-nginx-migration"

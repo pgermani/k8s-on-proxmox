@@ -177,6 +177,8 @@ kubectl get daemonset -n kube-system
 
 Expect `rke2-traefik` running, and no `rke2-ingress-nginx-controller` at all.
 
+> Note: RKE2 already auto-installed Ingress NGINX as the default addon before this change, so this restart tears it down while bringing Traefik up - not a clean first start. The old DaemonSet can take a few minutes to fully disappear (admission webhook teardown), and until it does, its pods still hold host ports `80`/`443`: a new Traefik pod wanting the same ports on the same node sits `Pending` in the meantime. This is expected, not a failure - re-run the verify command after a short wait rather than assuming something is wrong.
+
 > If you are instead working with an existing cluster that already runs Ingress NGINX in production, do not use this shortcut - follow [ingress-traefik-migration.md](k8s/core/ingress-traefik-migration.md) instead, which moves traffic over in phases without downtime.
 
 **Redirect HTTP to HTTPS.** Ingress NGINX did this automatically and silently - any Ingress with a `tls:` block gets redirected with no annotation needed. Traefik has no such implicit behaviour: without explicit configuration, an Ingress with a `tls:` section still serves plain HTTP on port 80 unchanged. RKE2's own `rke2-traefik` chart ships this redirect commented out by default, so add it explicitly via a `HelmChartConfig` at `/var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml`:
