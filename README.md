@@ -63,7 +63,7 @@ Running both approaches in parallel allows experimentation with different provis
 
 A dedicated VM acts as an external Layer 4 load balancer. Both NGINX (configured in TCP stream mode) and Pi-hole run as Docker containers on this machine.
 
-For HTTPS traffic (`443`), NGINX performs TLS passthrough and distributes connections across the worker nodes. TLS termination and certificate management are handled by the NGINX Ingress Controller running inside the cluster (via cert-manager).
+For HTTPS traffic (`443`), NGINX performs TLS passthrough and distributes connections across the worker nodes. TLS termination and certificate management are handled by the Traefik Ingress Controller running inside the cluster (via cert-manager) - see [ingress-traefik-migration.md](docs/k8s/core/ingress-traefik-migration.md) for the migration from Ingress NGINX.
 
 The load balancer also exposes the Kubernetes API server (`6443`), forwarding it to the control plane node. This endpoint is intended for access from the local network only, keeping the control plane isolated from direct public exposure.
 
