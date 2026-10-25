@@ -7,7 +7,9 @@
 #
 # The kubernetesIngressNGINX provider stays enabled because the migrated
 # Ingress resources keep the `rke2-ingress-nginx-migration` class and their
-# nginx.ingress.kubernetes.io/* annotations.
+# nginx.ingress.kubernetes.io/* annotations. It is turned off at the very end,
+# once every Ingress is on the native `traefik` class - see section 10.3 of
+# docs/k8s/core/ingress-traefik-migration.md.
 #
 # > Note: keep the same provider key spelling used in phase 1 - `kubernetesIngressNginx`
 # > (lowercase "nginx") on releases older than v1.36.2 / v1.35.6 / v1.34.9 / v1.33.13,

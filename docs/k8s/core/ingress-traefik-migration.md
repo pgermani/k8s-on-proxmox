@@ -6,7 +6,7 @@ The `kubernetes/ingress-nginx` project reached end-of-life in **March 2026**: no
 
 The migration only replaces the controller. Application manifests keep using `kind: Ingress` throughout. The controller changes in two stages: first a bridge class that lets Traefik interpret the existing `nginx.ingress.kubernetes.io/*` annotations unchanged (phases 1-4), then the native `traefik` class and its own annotation set, switched one application at a time (section 10) - the actual end state.
 
-> Note: this migration has been executed and completed in this cluster - every application runs on the native `traefik` class, Ingress NGINX has been fully removed. This document stays as the reference for anyone repeating the same migration on another existing Ingress NGINX cluster; a fresh install should instead go straight to Traefik, see [rke2-bootstrap.md](../../rke2-bootstrap.md) ("Choose the Ingress Controller").
+> Note: this migration has been executed and completed in this cluster - every application runs on the native `traefik` class, Ingress NGINX has been fully removed, and so has the bridge provider (section 10.3). This document stays as the reference for anyone repeating the same migration on another existing Ingress NGINX cluster; a fresh install should instead go straight to Traefik, see [rke2-bootstrap.md](../../rke2-bootstrap.md) ("Choose the Ingress Controller").
 
 ---
 
@@ -136,7 +136,7 @@ It does two things: binds Traefik to host ports `8000`/`8443` so Ingress NGINX k
 | Bridge ingress class | `rke2-ingress-nginx-migration` |
 | Controller class | `rke2.cattle.io/ingress-nginx-migration` |
 
-> Note: the provider key was renamed to `kubernetesIngressNGINX` in the June releases (`v1.36.2+`, `v1.35.6+`, `v1.34.9+`, `v1.33.13+`); before that it is spelled `kubernetesIngressNginx` (lowercase "nginx"). The v1.32 line is **not** listed among the renamed releases, so on this cluster the lowercase spelling is the likely one. A wrong key is silently ignored and the provider never starts, so confirm it with the log check in section 4.4: if the `ingressnginx.Provider` line does not appear, switch the spelling and restart `rke2-server`.
+> Note: the provider key was renamed to `kubernetesIngressNGINX` in the June 2026 releases (`v1.36.2+`, `v1.35.6+`, `v1.34.9+`, `v1.33.13+`); before that it is spelled `kubernetesIngressNginx` (lowercase "nginx"). The v1.32 line is **not** listed among the renamed releases, so on this cluster the lowercase spelling is the likely one. A wrong key is silently ignored and the provider never starts, so confirm it with the log check in section 4.4: if the `ingressnginx.Provider` line does not appear, switch the spelling and restart `rke2-server`.
 
 ### 4.4 Restart and verify
 
@@ -170,7 +170,7 @@ Each nginx-class Ingress is copied with a `-traefik` suffix and reclassified to 
 
 ### 5.2 Test each application through Traefik
 
-Real DNS for each hostname does not point at a worker node - it resolves to the load balancer or straight to the public IP, neither of which forwards port `8443` (the LB only forwards `443`/`6443`, see [nginx.conf](../../../infra/load-balancer/nginx/conf/nginx.conf)). Following the real hostname as-is would simply fail to connect - it would never reach Traefik at all. Two ways to point the request at a worker node directly instead, both sending the correct `Host` header and TLS SNI so Traefik can still match the right router:
+Real DNS for each hostname does not point at a worker node - it resolves to the load balancer or straight to the public IP, and neither reaches Traefik's temporary host port `8443` on the nodes. Following the real hostname as-is would never reach Traefik at all. Two ways to point the request at a worker node directly instead, both sending the correct `Host` header and TLS SNI so Traefik can still match the right router:
 
 For a one-off check with `curl`, override resolution for just that command - nothing to clean up afterwards:
 
@@ -237,7 +237,7 @@ kubectl get endpoints <name> -n <namespace> -o jsonpath='{.subsets[0].ports}'
 # the "name" field must match (or both be absent) between the two
 ```
 
-Both fixes are applied to [smb-server-service.yaml](../../../infra/k8s/core/storage/smb-csi/smb-server-service.yaml) in this repo, and to the Pi-hole/Proxmox manifests backed up at `~/Library/CloudStorage/OneDrive-Personal/pve/k8s/apps/external-service-backup/` (outside this git repo, not tracked here). Applying either fix requires deleting and recreating the Service - `clusterIP` is immutable - which also deletes the manually-managed `Endpoints` object if it was created without care: recreate the Service and the Endpoints together, in the same pass, rather than assuming the Endpoints will survive.
+Both fixes are applied to [smb-server-service.yaml](../../../infra/k8s/core/storage/smb-csi/smb-server-service.yaml) in this repository; apply the same changes to every other Service that follows this pattern. Applying either fix requires deleting and recreating the Service - `clusterIP` is immutable - which also deletes the manually-managed `Endpoints` object if it was created without care: recreate the Service and the Endpoints together, in the same pass, rather than assuming the Endpoints will survive.
 
 ---
 
@@ -271,7 +271,7 @@ Then verify each application through its public hostname, without the port overr
 
 > Note: the Ingress NGINX DaemonSet can take several minutes to disappear because of admission webhook teardown. Wait for it to be fully gone before declaring the switchover complete.
 
-No load balancer change is required. [nginx.conf](../../../infra/load-balancer/nginx/conf/nginx.conf) forwards TCP to `<worker-ip>:443` and uses passive health checks (`max_fails` / `fail_timeout`), so there is no HTTP probe path to update from `/healthz` to `/ping`.
+No load balancer change is required. The load balancer forwarded TCP to the nodes on `443` and used passive health checks (`max_fails` / `fail_timeout`), so there was no HTTP probe path to update from `/healthz` to `/ping`.
 
 ---
 
@@ -325,7 +325,7 @@ helm upgrade rancher rancher-stable/rancher \
 
 The chart also injects `nginx.ingress.kubernetes.io/proxy-*-timeout` annotations on its own, regardless of values - they stay present after the switch but become inert, the same way gokapi's did: Traefik's own backend-facing defaults are already more generous.
 
-By this point in the migration Ingress NGINX itself no longer exists in the cluster (removed in phase 3), so the rollback path from section 8 no longer applies as written - there is no nginx class to restore. The equivalent safety net is the bridge class instead:
+By this point in the migration Ingress NGINX itself no longer exists in the cluster (removed in phase 3), so the rollback path from section 8 no longer applies as written - there is no nginx class to restore. The equivalent safety net is the bridge class instead, as long as the bridge provider is still enabled (until section 10.3):
 
 ```bash
 helm upgrade rancher rancher-stable/rancher \
@@ -387,3 +387,48 @@ kubectl patch ingress <app> -n <namespace> --type=merge -p '{"spec":{"ingressCla
 ```
 
 Also check the actual values key with `helm show values <chart> --version <version>` rather than assume it - it is not consistent across charts: `ingress.ingressClassName` for Rancher, `ingress.className` for Gitea, `expose.ingress.className` for Harbor.
+
+### 10.3 Disable the bridge provider
+
+The last step of the migration. The phase 3 configuration still enables the NGINX compatibility provider, because the migrated Ingresses were on the bridge class at that point. Once every Ingress is on the native `traefik` class, the provider has nothing left to serve - but it keeps watching for Ingresses of the bridge class, so any object still, or newly, pinned to it (an old manifest, a chart default) would be served with NGINX annotation semantics instead of failing visibly. Turn it off.
+
+**1. Confirm nothing uses the bridge class:**
+
+```bash
+kubectl get ingress -A -o custom-columns='NS:.metadata.namespace,NAME:.metadata.name,CLASS:.spec.ingressClassName' | grep -v ' traefik$'
+```
+
+Expect only the header line.
+
+**2. Back up and edit the configuration.** On the control plane:
+
+```bash
+sudo cp /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml ~/rke2-traefik-config.yaml.bak-provider
+sudoedit /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml
+```
+
+Remove the whole `providers` block, spelled as in phase 1 (see the note in section 4.3):
+
+```yaml
+    providers:
+      kubernetesIngressNginx:
+        enabled: true
+        ingressClass: "rke2-ingress-nginx-migration"
+        controllerClass: "rke2.cattle.io/ingress-nginx-migration"
+```
+
+Nothing replaces it: the chart default is `enabled: false`. The chart also creates the `rke2-ingress-nginx-migration` IngressClass only while the provider is enabled, so Helm deletes the class in the same step. RKE2 applies the change automatically and the Traefik DaemonSet rolls one node at a time.
+
+> Note: if the cluster has moved on to another configuration since phase 3 - as this one has, see [ingress-planes.md](ingress-planes.md) - edit the file currently installed, not `phase3-rke2-traefik-config.yaml`. The configuration this cluster runs after this step is [rke2-traefik-config.yaml](../../../infra/k8s/core/traefik/rke2-traefik-config.yaml).
+
+**3. Verify:**
+
+```bash
+kubectl -n kube-system rollout status daemonset/rke2-traefik
+kubectl -n kube-system get daemonset rke2-traefik -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n' | grep -ci kubernetesingressnginx
+kubectl get ingressclass
+```
+
+Expect `0` from the second command, and only the `traefik` IngressClass. Then check every application through its hostname: routing does not change, since no Ingress used the provider.
+
+**Rollback:** restore `~/rke2-traefik-config.yaml.bak-provider` to the manifests directory. The provider and the IngressClass come back with the next rollout.
