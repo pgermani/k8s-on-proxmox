@@ -1,0 +1,83 @@
+# Traefik configuration for this cluster - the source for
+# /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml on the
+# control plane. Replace <LB-IP> (the load balancer VM address) before copying.
+#
+# Ingress is split into two planes, see docs/k8s/core/ingress-planes.md:
+#
+#   websecure      Internal plane. Host port 443, fed by the load balancer's
+#                  internal listener (LAN + VPN only, never forwarded by the
+#                  router). `asDefault: true` makes it the only entrypoint of any
+#                  Ingress that does not name one, so a new Ingress is internal
+#                  unless it explicitly opts in to the public plane. The lan-only
+#                  Middleware (middleware-lan-only.yaml) is attached to the whole
+#                  entrypoint as a second, source-based check.
+#
+#   websecure-ext  Public plane. Host port 8444, fed only by the load balancer's
+#                  public listener - the one the router forwards internet
+#                  traffic to. Only Ingresses annotated with
+#                    traefik.ingress.kubernetes.io/router.entrypoints: websecure,websecure-ext
+#                  get a router here: any other Host header returns 404, which
+#                  is what defeats domain fronting (public SNI + internal Host).
+#
+# proxyProtocol.trustedIPs: the load balancer prepends a PROXY protocol header
+# carrying the real client address. Traefik honours it only when the TCP peer
+# is <LB-IP>; from any other peer the header is ignored and the peer address is
+# used, so it cannot be spoofed by connecting to a node directly. From a trusted
+# peer the header is optional, which makes this file safe to apply before the
+# load balancer starts sending it.
+#
+# web keeps the global HTTP -> HTTPS redirect and both entrypoints keep the
+# 600s readTimeout - see docs/rke2-bootstrap.md ("Choose the Ingress
+# Controller") for both. The load balancer does not forward port 80: web is
+# reachable only directly on the nodes, from the LAN.
+#
+# No providers block: the kubernetesIngressNginx bridge provider used during
+# the Ingress NGINX -> Traefik migration (docs/k8s/core/ingress-traefik-migration.md)
+# is off, as in the chart defaults, and so is the rke2-ingress-nginx-migration
+# IngressClass the chart creates with it. Every Ingress uses the native
+# `traefik` class.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s
+      websecure:
+        asDefault: true
+        http:
+          middlewares:
+            - kube-system-lan-only@kubernetescrd
+        proxyProtocol:
+          trustedIPs:
+            - <LB-IP>/32
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s
+      websecure-ext:
+        port: 8444
+        hostPort: 8444
+        exposedPort: 8444
+        protocol: TCP
+        expose:
+          default: false
+        http:
+          tls:
+            enabled: true
+        proxyProtocol:
+          trustedIPs:
+            - <LB-IP>/32
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s

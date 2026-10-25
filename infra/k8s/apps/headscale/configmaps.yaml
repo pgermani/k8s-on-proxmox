@@ -1,6 +1,9 @@
 # Replace all placeholders before applying:
-#   <VPN-HOSTNAME>.<YOUR-DOMAIN>  - public hostname for Headscale/Headplane (e.g. headscale.example.com)
+#   <VPN-HOSTNAME>.<YOUR-DOMAIN>  - public hostname for Headscale (e.g. headscale.example.com)
+#   <HEADPLANE-HOSTNAME>          - internal hostname for Headplane (e.g. vpn.homelab)
 #   <MAGIC-DNS-DOMAIN>  - Headscale Magic DNS base domain (e.g. example.myhomelab)
+#   <INTERNAL-ZONE>     - internal DNS zone served by Pi-hole (e.g. homelab), resolved via split DNS
+#   <PIHOLE-IP>         - Pi-hole address on the home network
 # See docs/k8s/apps/headscale.md
 apiVersion: v1
 kind: ConfigMap
@@ -67,7 +70,9 @@ data:
           - 1.0.0.1
           - 8.8.8.8
           - 8.8.4.4
-        split: {}
+        split:
+          <INTERNAL-ZONE>:
+            - <PIHOLE-IP>
       search_domains: []
       extra_records_path: /var/lib/headscale/extra-records.json
 
@@ -89,7 +94,8 @@ data:
     server:
       host: "0.0.0.0"
       port: 3000
-      base_url: "https://<VPN-HOSTNAME>.<YOUR-DOMAIN>"
+      # Internal hostname: Headplane is served only on the internal ingress plane
+      base_url: "https://<HEADPLANE-HOSTNAME>"
       cookie_secret_path: "/etc/headplane/secrets/cookie_secret"
       cookie_secure: true
       cookie_max_age: 86400

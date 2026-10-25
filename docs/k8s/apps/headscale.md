@@ -2,9 +2,9 @@
 
 Below is how Headscale and its web UI Headplane are deployed in this homelab as the VPN control server for remote access.
 
-Headscale is a self-hosted implementation of the Tailscale control server. Tailscale clients on the load balancer VM and on TrueNAS advertise the home network subnet (example: `192.168.178.0/24`), making it accessible from anywhere as if on the local network, including SMB shares on TrueNAS and internal services that are not publicly exposed.
+Headscale is a self-hosted implementation of the Tailscale control server. Tailscale clients on the load balancer VM and on TrueNAS advertise the home network subnet (`<HOME-NETWORK-CIDR>`), making it accessible from anywhere as if on the local network, including SMB shares on TrueNAS and internal services that are not publicly exposed.
 
-Headplane provides a web UI at `https://<VPN-HOSTNAME>.<YOUR-DOMAIN>/admin` for managing nodes, users, and pre-auth keys. Headscale handles all Tailscale client traffic at the root path on the same hostname.
+Headplane provides a web UI at `https://<HEADPLANE-HOSTNAME>/admin` for managing nodes, users, and pre-auth keys. It is internal-only, reachable from the LAN and the VPN. Headscale handles all Tailscale client traffic on the public hostname `<VPN-HOSTNAME>.<YOUR-DOMAIN>`.
 
 ![VPN access diagram](../../diagrams/vpn-access-diagram.png)
 
@@ -48,12 +48,14 @@ The `headscale-config` ConfigMap is used as a **seed only**. On first boot, an i
 
 ### Ingress routing
 
-Both services are exposed on `<VPN-HOSTNAME>.<YOUR-DOMAIN>` via a single Ingress:
+Two Ingresses with different exposure levels, see [ingress-planes.md](../core/ingress-planes.md):
 
-| Path | Backend | Purpose |
-|---|---|---|
-| `/admin` | headplane:3000 | Headplane web UI |
-| `/` | headscale:8080 | Tailscale client traffic |
+| Ingress | Host | Path | Backend | Plane |
+|---|---|---|---|---|
+| `headscale` | `<VPN-HOSTNAME>.<YOUR-DOMAIN>` | `/` | headscale:8080 | Public - Tailscale clients connect from anywhere |
+| `headplane` | `<HEADPLANE-HOSTNAME>` | `/admin` | headplane:3000 | Internal - admin UI of the whole VPN |
+
+> Note: Headplane is not reachable from the internet on purpose: anyone logged in can register nodes and approve routes into the home network. For emergency access when the VPN is down, use an independent path into the home network, such as the router's built-in VPN.
 
 
 ## 3. Deploy
@@ -69,7 +71,10 @@ Before applying, replace all placeholders across the manifest files:
 | Placeholder | File(s) | Description |
 |---|---|---|
 | `<COOKIE-SECRET>` | `secret.yaml` | the generated hex string |
-| `<VPN-HOSTNAME>.<YOUR-DOMAIN>` | `configmaps.yaml`, `ingress.yaml` | public hostname for Headscale/Headplane |
+| `<VPN-HOSTNAME>.<YOUR-DOMAIN>` | `configmaps.yaml`, `ingress.yaml` | public hostname for Headscale |
+| `<HEADPLANE-HOSTNAME>` | `configmaps.yaml`, `ingress.yaml` | internal hostname for Headplane, with a Pi-hole record pointing to the load balancer |
+| `<INTERNAL-CLUSTER-ISSUER>` | `ingress.yaml` | cert-manager ClusterIssuer for internal names, e.g. `selfsigned-ca` - see [cert-manager-internal.md](../core/cert-manager-internal.md) |
+| `<INTERNAL-ZONE>`, `<PIHOLE-IP>` | `configmaps.yaml` | split DNS for internal names, see section 8 |
 | `<MAGIC-DNS-DOMAIN>` | `configmaps.yaml` | Headscale Magic DNS base domain |
 
 Then apply all manifests in order:
@@ -103,7 +108,7 @@ Copy the printed key (it is shown only once).
 
 ## 5. Access Headplane
 
-Open `https://<VPN-HOSTNAME>.<YOUR-DOMAIN>/admin` in a browser. Log in using the API key generated in the previous step.
+From the LAN, open `https://<HEADPLANE-HOSTNAME>/admin` in a browser. Log in using the API key generated in the previous step.
 
 
 ## 6. Connecting Clients
@@ -203,16 +208,30 @@ Once connected, the full home network is accessible as if on the local LAN.
 
 Headscale's Magic DNS automatically registers every connected node at `[device].<MAGIC-DNS-DOMAIN>`, no manual configuration needed for device-to-device resolution.
 
-The **DNS Records** tab in Headplane is for additional entries not tied to a specific device: service endpoints, internal hostnames, or anything that should be reachable by name through the VPN.
+**Internal service names** (the `*.homelab` zone in this setup) are resolved by Pi-hole, the single source of truth for internal DNS. Point that zone to Pi-hole with split DNS, so VPN clients get the same answers as LAN clients and reach the services through the subnet routers:
 
-A practical example is the Kubernetes API server. Adding this record:
+```yaml
+dns:
+  nameservers:
+    split:
+      homelab:
+        - <PIHOLE-IP>
+```
+
+Set it from Headplane (**DNS → Add nameserver**, with **Split DNS** enabled and the internal zone as domain) or in `/etc/headscale/config.yaml` on the Headscale PVC. Restart Headscale in both cases: it reads that file only at startup, and Headplane does not restart it without an integration configured. The `headscale-config` ConfigMap only seeds that file on first start. Step-by-step instructions and checks: [ingress-planes.md](../core/ingress-planes.md), section 5.5.
+
+> Note: do not add Headscale DNS records that point internal service names to the load balancer's Tailscale address. Tailscale runs in userspace mode on the load balancer, so that traffic reaches NGINX from loopback, and the internal ingress listener rejects it - see [ingress-planes.md](../core/ingress-planes.md).
+
+The **DNS Records** tab in Headplane remains useful for names that exist only on the tailnet. Names of services in the home network, the Kubernetes API included, belong in Pi-hole.
+
+For example, to run `kubectl` from anywhere on the VPN without exposing port 6443 publicly, add this record in Pi-hole:
 
 | Name | Type | Value |
 |---|---|---|
-| `k8s-api.myhomelab` | A | `<LB-TAILSCALE-IP>` |
+| `k8s-api.homelab` | A | `<LB-IP>` |
 
-allows running `kubectl` from anywhere on the Tailscale network without exposing port 6443 publicly. The load balancer forwards the traffic to the control plane internally.
+LAN clients resolve it directly, VPN clients through split DNS, and the load balancer forwards the traffic to the control plane.
 
-> For this to work, `k8s-api.myhomelab` must also be added as a TLS SAN on the RKE2 control plane, otherwise `kubectl` will reject the API server certificate. See the TLS SANs step in [rke2-bootstrap.md](../../rke2-bootstrap.md).
+> For this to work, `k8s-api.homelab` must also be added as a TLS SAN on the RKE2 control plane, otherwise `kubectl` will reject the API server certificate. See the TLS SANs step in [rke2-bootstrap.md](../../rke2-bootstrap.md).
 
-Update the kubeconfig server address to `https://k8s-api.myhomelab:6443` to use it remotely.
+Update the kubeconfig server address to `https://k8s-api.homelab:6443` to use it from both the LAN and the VPN.

@@ -12,11 +12,17 @@
 # is the entrypoint's client-facing readTimeout (60s default, see
 # rke2-traefik-config.yaml), raised globally to 600s because this app is the
 # one that needs it - large, slow uploads were getting cut off otherwise.
+#
+# Public: the router.entrypoints annotation also serves this Ingress on the
+# public ingress plane (websecure-ext). Without it the Ingress would be
+# internal-only (LAN + VPN) - see docs/k8s/core/ingress-planes.md.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: gokapi
   namespace: gokapi
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure,websecure-ext
   labels:
     app.kubernetes.io/name: gokapi
 spec:

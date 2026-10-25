@@ -14,18 +14,24 @@ The load balancer is the **only VM exposed to the internet** for the Kubernetes 
 
 ### Kubernetes Traffic
 
-NGINX operates in **TCP stream mode** and forwards incoming traffic to the Kubernetes nodes.
+NGINX operates in **TCP stream mode** and forwards incoming traffic to the Kubernetes nodes. Ingress is split into an internal and a public plane, each with its own listener - see [ingress-planes.md](k8s/core/ingress-planes.md).
 
-Two types of traffic are handled:
+| Port   | Purpose | Reachable from | Forwarded to |
+|--------|---------|----------------|--------------|
+| `443`  | Internal ingress plane | LAN, VPN | Traefik `websecure` (nodes `443`) |
+| `8443` | Public ingress plane, public hostnames only | Internet (router port forward) | Traefik `websecure-ext` (nodes `8444`) |
+| `6443` | Kubernetes API server | LAN, VPN | Control plane `6443` |
 
-| Port   | Purpose |
-|--------|---------|
-| `6443` | Kubernetes API server |
-| `443`  | Ingress traffic for applications running in the cluster |
+Both ingress listeners send a PROXY protocol header so Traefik sees the real client IP. TLS is never terminated on the load balancer.
 
 External traffic flow:
 ```
-Client -> Router (port forward) -> Load Balancer (NGINX) -> Kubernetes Nodes
+Client -> Router (port forward 443 -> 8443) -> Load Balancer (NGINX :8443) -> Kubernetes Nodes (:8444)
+```
+
+Internal traffic flow:
+```
+Client -> Pi-hole (internal name -> load balancer) -> Load Balancer (NGINX :443) -> Kubernetes Nodes (:443)
 ```
 
 ### DNS Services
@@ -58,7 +64,11 @@ Configuration files:
 - Docker Compose file: [infra/load-balancer/nginx/docker-compose.yaml](../infra/load-balancer/nginx/docker-compose.yaml)
 - NGINX configuration: [infra/load-balancer/nginx/conf/nginx.conf](../infra/load-balancer/nginx/conf/nginx.conf)
 
-Before starting the container, adjust the backend node IP addresses inside `nginx.conf`
+Before starting the container, replace every `<...>` placeholder inside `nginx.conf`: node IP addresses, home network CIDR, router address and public domain.
+
+The container uses `network_mode: host` instead of published ports. Docker's port publishing NAT can replace the client source address, while the access rules and the PROXY protocol header in `nginx.conf` depend on nginx seeing the real one.
+
+Configure the router to forward external TCP `443` to port `8443` of this VM - never to `443`, which is the internal listener.
 
 Start the service:
 

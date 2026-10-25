@@ -68,6 +68,8 @@ Rather than editing `/etc/hosts` on individual machines, add a DNS record in Pi-
 
 Since Pi-hole is configured as the primary resolver on the home router (FRITZ!Box or equivalent), the record is immediately available to all devices on the home network.
 
+> Note: Rancher is internal-only - reachable from the LAN and the VPN, never from the internet. The chart's Ingress carries no entrypoint annotation, so Traefik serves it only on the internal ingress plane. Do not publish it: see [ingress-planes.md](ingress-planes.md).
+
 
 ## 5. Access Rancher
 

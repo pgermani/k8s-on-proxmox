@@ -216,6 +216,8 @@ sudo systemctl restart rke2-server
 
 **Raise the entrypoint read timeout for large uploads.** Traefik's default `readTimeout` (60s since v2.11.2) caps how long it waits to read an entire incoming request, body included - plenty for most apps, but too short for a large, slow upload (e.g. gokapi, see `infra/k8s/apps/gokapi/`). Unlike the three `nginx.ingress.kubernetes.io/proxy-*-timeout` annotations Ingress NGINX used for this, there is no per-Ingress or per-Service equivalent in Traefik - entrypoint read timeouts are a property of the underlying Go HTTP server, shared by every route on that entrypoint. `600s` is included above, bounded rather than disabled (`0s`) outright, given this cluster is reachable from the internet. Skip it if no application needs long-running uploads.
 
+**Split internal and public ingress.** The `HelmChartConfig` above is the starting point. The configuration this cluster actually runs, [rke2-traefik-config.yaml](../infra/k8s/core/traefik/rke2-traefik-config.yaml), extends it with a second, public entrypoint and makes every Ingress internal unless explicitly published. Follow [ingress-planes.md](k8s/core/ingress-planes.md) to apply it: it depends on a Middleware that must exist first, and on matching changes on the load balancer and the router.
+
 ### Install the SMB CSI driver
 
 Required for static volumes backed by TrueNAS SMB shares. See [smb-csi.md](k8s/storage/smb-csi.md) for the full setup.

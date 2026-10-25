@@ -1,15 +1,36 @@
-# Replace <VPN-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for Headscale/Headplane (e.g. headscale.example.com).
+# Replace before applying:
+#   <VPN-HOSTNAME>.<YOUR-DOMAIN>  - public hostname for Headscale (e.g. headscale.example.com)
+#   <HEADPLANE-HOSTNAME>          - internal hostname for Headplane (e.g. vpn.homelab)
+#   <INTERNAL-CLUSTER-ISSUER>     - cert-manager ClusterIssuer for internal names (e.g. selfsigned-ca,
+#                                   see docs/k8s/core/cert-manager-internal.md)
 # See docs/k8s/apps/headscale.md
 #
 # ingressClassName is "traefik" (native), not a leftover from the Ingress
 # NGINX -> Traefik migration - see docs/k8s/core/ingress-traefik-migration.md.
 # No ssl-redirect annotation is needed: HTTP -> HTTPS is handled once, globally,
 # at the Traefik entrypoint (see rke2-traefik-config.yaml).
+#
+# Two Ingresses, two exposure levels - see docs/k8s/core/ingress-planes.md:
+#
+#   headscale  Public. Tailscale clients must reach the control server from
+#              anywhere, so the router.entrypoints annotation also serves it on
+#              the public ingress plane (websecure-ext).
+#
+#   headplane  Internal (LAN + VPN). Headplane is the admin UI of the whole VPN:
+#              anyone logged in can register nodes and approve routes into the
+#              home network. No annotation, so it has no router on the public
+#              plane - from the internet, /admin on the public hostname falls
+#              through to Headscale, which answers any unknown path with its
+#              own empty page (200, the same as /). For emergency access when
+#              the VPN itself is down, use an independent path into the home
+#              network (e.g. the router's built-in VPN), not a public admin UI.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: headscale
   namespace: headscale
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure,websecure-ext
 spec:
   ingressClassName: traefik
   tls:
@@ -20,13 +41,6 @@ spec:
     - host: <VPN-HOSTNAME>.<YOUR-DOMAIN>
       http:
         paths:
-          - path: /admin
-            pathType: Prefix
-            backend:
-              service:
-                name: headplane
-                port:
-                  number: 3000
           - path: /
             pathType: Prefix
             backend:
@@ -34,3 +48,32 @@ spec:
                 name: headscale
                 port:
                   number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headplane
+  namespace: headscale
+  annotations:
+    cert-manager.io/cluster-issuer: <INTERNAL-CLUSTER-ISSUER>
+    cert-manager.io/common-name: <HEADPLANE-HOSTNAME>
+    cert-manager.io/duration: 8760h
+    cert-manager.io/renew-before: 720h
+    cert-manager.io/private-key-rotation-policy: Always
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - <HEADPLANE-HOSTNAME>
+      secretName: headplane-tls
+  rules:
+    - host: <HEADPLANE-HOSTNAME>
+      http:
+        paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: headplane
+                port:
+                  number: 3000

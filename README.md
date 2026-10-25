@@ -63,9 +63,9 @@ Running both approaches in parallel allows experimentation with different provis
 
 A dedicated VM acts as an external Layer 4 load balancer. Both NGINX (configured in TCP stream mode) and Pi-hole run as Docker containers on this machine.
 
-For HTTPS traffic (`443`), NGINX performs TLS passthrough and distributes connections across the worker nodes. TLS termination and certificate management are handled by the Traefik Ingress Controller running inside the cluster (via cert-manager) - see [ingress-traefik-migration.md](docs/k8s/core/ingress-traefik-migration.md) for the migration from Ingress NGINX.
+For HTTPS traffic, NGINX performs TLS passthrough and distributes connections across the nodes running the ingress controller, on two separate listeners: an internal one (`443`) for LAN and VPN clients, and a public one (`8443`), the only port the router forwards from the internet. Every application is internal unless explicitly published - see [ingress-planes.md](docs/k8s/core/ingress-planes.md). TLS termination and certificate management are handled by the Traefik Ingress Controller running inside the cluster (via cert-manager) - see [ingress-traefik-migration.md](docs/k8s/core/ingress-traefik-migration.md) for the migration from Ingress NGINX.
 
-The load balancer also exposes the Kubernetes API server (`6443`), forwarding it to the control plane node. This endpoint is intended for access from the local network only, keeping the control plane isolated from direct public exposure.
+The load balancer also exposes the Kubernetes API server (`6443`), forwarding it to the control plane node. This endpoint accepts connections from the LAN and the VPN only, keeping the control plane isolated from direct public exposure.
 
 Pi-hole is configured as the primary DNS resolver on the FRITZ!Box for the internal network. This enables domain-level filtering and resolution of internal service domains that are not exposed publicly.
 
@@ -86,10 +86,12 @@ Client requests follow a defined path through the infrastructure down to workloa
 
 
 - Cloudflare acts as the public authoritative DNS provider for exposed domains
-- The FRITZ!Box forwards inbound TCP `443` to the load balancer VM
+- The FRITZ!Box forwards inbound TCP `443` to the load balancer's public listener (`8443`)
 - The L4 load balancer performs TCP forwarding only:
-  - `443` -> Ingress Controller (TLS passthrough)
-  - `6443` -> Control Plane (LAN-only API access)
+  - `8443` -> Ingress Controller, public plane (TLS passthrough, public hostnames only)
+  - `443` -> Ingress Controller, internal plane (TLS passthrough, LAN and VPN only)
+  - `6443` -> Control Plane (LAN and VPN API access)
+- Applications are internal by default and must be explicitly published - see [ingress-planes.md](docs/k8s/core/ingress-planes.md)
 - TLS termination occurs inside the cluster at the Ingress layer
 - Persistent workloads consume storage exposed via NFS or SMB
 

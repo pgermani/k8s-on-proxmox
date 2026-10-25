@@ -1,0 +1,32 @@
+# Source allowlist for the internal ingress plane.
+# Replace <HOME-NETWORK-CIDR> (the home network, e.g. 192.168.1.0/24) before applying.
+#
+# Not referenced by any Ingress: rke2-traefik-config.yaml attaches it to the
+# whole `websecure` entrypoint, so every router on the internal plane inherits
+# it - including Ingresses created by Helm charts - with no annotation to forget.
+#
+# Allowed sources:
+#   <HOME-NETWORK-CIDR>  LAN clients, cluster nodes, and VPN clients SNATed by a
+#                        Tailscale subnet router (TrueNAS, load balancer)
+#   100.64.0.0/10        Headscale tailnet range, for VPN clients that reach the
+#                        cluster without SNAT
+#
+# It only becomes effective once Traefik sees the real client IP, i.e. once the
+# load balancer sends the PROXY protocol header on its internal listener. Until
+# then every connection comes from the load balancer itself, which is inside
+# <HOME-NETWORK-CIDR>, and everything is let through.
+#
+# Apply it BEFORE rke2-traefik-config.yaml: an entrypoint middleware that does
+# not resolve breaks every router on that entrypoint.
+#
+# See docs/k8s/core/ingress-planes.md
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: lan-only
+  namespace: kube-system
+spec:
+  ipAllowList:
+    sourceRange:
+      - <HOME-NETWORK-CIDR>
+      - 100.64.0.0/10

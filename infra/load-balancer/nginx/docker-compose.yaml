@@ -1,15 +1,15 @@
+# NGINX L4 load balancer - listens on 443 (internal), 8443 (public) and
+# 6443 (Kubernetes API), see conf/nginx.conf.
+#
+# Host networking, no published ports: Docker's published-port NAT (and
+# docker-proxy, for some paths) can replace the client source address, while
+# the allow/deny rules and the PROXY protocol header in nginx.conf depend on
+# nginx seeing the real one.
 services:
   nginx-lb:
     image: nginx:stable
     container_name: nginx-lb
-    ports:
-      - "443:443"
-      - "6443:6443"
+    network_mode: host
     volumes:
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped
-    networks:
-      - lb_net
-
-networks:
-  lb_net:

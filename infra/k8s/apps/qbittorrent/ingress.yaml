@@ -1,18 +1,34 @@
-# Replace <QBITTORRENT-HOSTNAME>.<YOUR-DOMAIN> with the public hostname for qbittorrent (e.g. qbittorrent.example.com).
+# Replace before applying:
+#   <QBITTORRENT-HOSTNAME>     - internal hostname for qbittorrent (e.g. qbittorrent.homelab)
+#   <INTERNAL-CLUSTER-ISSUER>  - cert-manager ClusterIssuer for internal names (e.g. selfsigned-ca,
+#                                see docs/k8s/core/cert-manager-internal.md)
 #
 # ingressClassName is "traefik" (native), not a leftover from the Ingress
 # NGINX -> Traefik migration - see docs/k8s/core/ingress-traefik-migration.md.
 # No ssl-redirect annotation is needed: HTTP -> HTTPS is handled once, globally,
 # at the Traefik entrypoint (see rke2-traefik-config.yaml).
+#
+# Internal: no router.entrypoints annotation, so this Ingress is served only on
+# the internal ingress plane (LAN + VPN) - see docs/k8s/core/ingress-planes.md.
+# The hostname is in the internal zone, resolved to the load balancer by
+# Pi-hole: a name under the public domain would resolve to the public IP and
+# land on the public plane, where this Ingress has no router (404). The
+# certificate comes from the internal issuer, not the public wildcard.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: qbittorrent
   namespace: qbittorrent
+  annotations:
+    cert-manager.io/cluster-issuer: <INTERNAL-CLUSTER-ISSUER>
+    cert-manager.io/common-name: <QBITTORRENT-HOSTNAME>
+    cert-manager.io/duration: 8760h
+    cert-manager.io/renew-before: 720h
+    cert-manager.io/private-key-rotation-policy: Always
 spec:
   ingressClassName: traefik
   rules:
-  - host: <QBITTORRENT-HOSTNAME>.<YOUR-DOMAIN>
+  - host: <QBITTORRENT-HOSTNAME>
     http:
       paths:
       - pathType: Prefix
@@ -24,5 +40,5 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - <QBITTORRENT-HOSTNAME>.<YOUR-DOMAIN>
-    secretName: wildcard-prod-tls
+    - <QBITTORRENT-HOSTNAME>
+    secretName: qbittorrent-tls

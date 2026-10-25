@@ -5,11 +5,17 @@
 # NGINX -> Traefik migration - see docs/k8s/core/ingress-traefik-migration.md.
 # No ssl-redirect annotation is needed: HTTP -> HTTPS is handled once, globally,
 # at the Traefik entrypoint (see rke2-traefik-config.yaml).
+#
+# Public: the router.entrypoints annotation also serves this Ingress on the
+# public ingress plane (websecure-ext). Without it the Ingress would be
+# internal-only (LAN + VPN) - see docs/k8s/core/ingress-planes.md.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: jellyfin
   namespace: jellyfin
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure,websecure-ext
 spec:
   ingressClassName: traefik
   rules:
