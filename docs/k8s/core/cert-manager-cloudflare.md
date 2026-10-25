@@ -2,7 +2,7 @@
 
 Below is how a wildcard TLS certificate is issued and managed in this homelab using cert-manager, Let's Encrypt, and Cloudflare DNS-01 challenge (see [cert-manager DNS-01 docs](https://cert-manager.io/docs/configuration/acme/dns01/)).
 
-In this setup the domain (`pgermani.dev`) is registered directly on Cloudflare, which allows using their DNS API for DNS-01 challenges without any additional provider configuration. cert-manager handles the full certificate lifecycle, issuance and renewal.
+In this setup the public domain (`<YOUR-DOMAIN>`) is registered directly on Cloudflare, which allows using their DNS API for DNS-01 challenges without any additional provider configuration. cert-manager handles the full certificate lifecycle, issuance and renewal.
 
 The resulting certificate secret is replicated to all namespaces via Reflector (see [reflector.md](reflector.md)), so every workload can reference it without additional setup.
 

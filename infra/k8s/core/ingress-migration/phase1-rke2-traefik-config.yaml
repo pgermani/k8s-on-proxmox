@@ -10,7 +10,7 @@
 # Target file on the control plane node:
 #   /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml
 #
-# > Note: the provider key below was renamed in the June releases (v1.36.2+,
+# > Note: the provider key below was renamed in the June 2026 releases (v1.36.2+,
 # > v1.35.6+, v1.34.9+, v1.33.13+). Earlier releases spell it
 # > `kubernetesIngressNginx` (lowercase "nginx"), and the v1.32 line is not among
 # > the renamed ones - so on a v1.32 cluster the lowercase spelling is the likely
